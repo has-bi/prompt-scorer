@@ -5,14 +5,33 @@ import json
 import os
 from dataclasses import dataclass
 from enum import Enum
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Configuration - Streamlit Cloud compatible
+def get_config():
+    """Get configuration from Streamlit secrets or environment variables"""
+    try:
+        # Try Streamlit secrets first (for Streamlit Cloud)
+        return {
+            "api_key": st.secrets["openai"]["api_key"],
+            "model": st.secrets["openai"]["model"],
+            "temperature": st.secrets["openai"]["temperature"],
+            "app_title": st.secrets["app"]["title"],
+            "app_debug": st.secrets["app"]["debug"]
+        }
+    except (KeyError, FileNotFoundError):
+        # Fallback to environment variables (for local development)
+        return {
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "model": os.getenv("OPENAI_MODEL", "gpt-4"),
+            "temperature": float(os.getenv("OPENAI_TEMPERATURE", "0.3")),
+            "app_title": os.getenv("APP_TITLE", "Penilai Prompt Engineering"),
+            "app_debug": os.getenv("APP_DEBUG", "False").lower() == "true"
+        }
 
-# Configuration
+config = get_config()
+
 st.set_page_config(
-    page_title=os.getenv("APP_TITLE", "Penilai Prompt Engineering"),
+    page_title=config["app_title"],
     page_icon="🎯",
     layout="wide"
 )
@@ -38,9 +57,9 @@ class AnalisisPrompt:
 
 class PenilaiPrompt:
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = config["api_key"]
         if not api_key:
-            raise ValueError("OPENAI_API_KEY tidak ditemukan di .env file")
+            raise ValueError("OPENAI_API_KEY tidak ditemukan")
         self.client = openai.OpenAI(api_key=api_key)
         
     def analisis_prompt(self, prompt: str) -> AnalisisPrompt:
@@ -85,12 +104,12 @@ class PenilaiPrompt:
         
         try:
             response = self.client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-4"),
+                model=config["model"],
                 messages=[
                     {"role": "system", "content": "Kamu adalah ahli prompt engineering yang fokus pada 4 teknik utama: Zero-Shot, Few-Shot, Chain of Thought, dan Tree of Thoughts. Evaluasi berdasarkan kesesuaian teknik dengan kebutuhan."},
                     {"role": "user", "content": prompt_analisis}
                 ],
-                temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.3")),
+                temperature=config["temperature"],
                 response_format={"type": "json_object"}
             )
             
@@ -110,7 +129,7 @@ class PenilaiPrompt:
             
         except Exception as e:
             st.error(f"Error saat menganalisis prompt: {str(e)}")
-            st.info("Pastikan OPENAI_API_KEY sudah diset di file .env")
+            st.info("Pastikan OPENAI_API_KEY sudah diset dengan benar")
             return None
 
 def tampilkan_meter_skor(skor: int):
@@ -143,13 +162,17 @@ def main():
     except ValueError as e:
         st.error("❌ OPENAI_API_KEY tidak ditemukan!")
         st.info("""
-        📝 Cara setup:
+        📝 Untuk Streamlit Cloud:
+        1. Buka Settings > Secrets di dashboard Streamlit Cloud
+        2. Paste konfigurasi TOML yang sudah dibuat
+        3. Deploy ulang aplikasi
+        
+        📝 Untuk lokal development:
         1. Buat file `.env` di folder yang sama
         2. Tambahkan: `OPENAI_API_KEY=your-api-key-here`
         3. Restart aplikasi
         """)
         return
-    
     
     # Main input section
     st.header("📝 Masukkan Prompt Anda")
