@@ -1,0 +1,28 @@
+[project]
+name = "prompt-scorer"
+version = "1.0.0"
+description = "AI-powered prompt engineering analyzer with Indonesian-style supportive feedback"
+authors = [
+    {name = "Hasbi", email = "hasbi@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit>=1.47.1",
+    "openai>=1.30.0",
+    "python-dotenv>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/hasbi/prompt-scorer"
+Repository = "https://github.com/hasbi/prompt-scorer"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
+
+[project.scripts]
+prompt-scorer = "streamlit:main"
